@@ -9,7 +9,9 @@ gpio_pins = [1,2,3,4,5,6,7,8]
 current_char = " "
 
 for i in gpio_pins:
-    MOTOR_LOOKUP[i] = Servo(1, min_pulse_width=0.0011, max_pulse_width=0.0019)
+    #MOTOR_LOOKUP[i] = Servo(i, min_pulse_width=0.0011, max_pulse_width=0.0019)
+    MOTOR_LOOKUP[i] = Servo(i)
+
 
 async def read_stdin():
     reader = asyncio.StreamReader(sys.stdin)
@@ -43,7 +45,7 @@ async def read_stdin():
             
         except Exception as e:
             print(f"Error reading stdin: {e}")
-            break
+            pass
  
 async def main():
     await read_stdin()
