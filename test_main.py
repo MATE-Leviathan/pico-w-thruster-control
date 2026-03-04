@@ -1,5 +1,6 @@
 
 line = "z010.55021.00x"
+line = "z010.00x"
 if line[0] != "z" or line[-1] != "x":
     exit()
 
