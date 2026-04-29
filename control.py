@@ -3,6 +3,15 @@ import time
 
 ser = serial.Serial('/dev/ttyACM0', 115200, timeout=1)
 
+
+def command(pin, value):
+    if value < 0:
+        value_str = f"{value:.1f}"
+    else:
+        value_str = f"{value:.2f}"
+    return f"z{int(pin):02d}{value_str}x\n"
+
+
 time.sleep(3)
 # 0 -> fr-1
 # 1 -> ml-5
@@ -14,11 +23,12 @@ time.sleep(3)
 # 7 -> mr-2
 # accounted for 1, 2, 3,
 # MAKE VERY SURE TO HAVE PADDING, OTHERWISE COOKED
-all_pins = ["00", "01", "02", "03", "06", "07"]
-PIN_NUM = "01"
+all_pins = [26, 7, 16, 3, 15, 11]
+ACTUATOR_NUM = 99
+PIN_NUM = 1
 cmd = ""
 for pin in all_pins:
-    cmd += f"z{pin}00.50x\n"
+    cmd += command(pin, 0.50)
     print(cmd)
 
 ser.write(cmd.encode())
@@ -26,8 +36,8 @@ time.sleep(1.5)
 
 cmd = ""
 for pin in all_pins:
-    #cmd += f"z{pin}00.75x\n"
-    cmd += f"z{pin}00.50x\n"
+    #cmd += command(pin, 0.75)
+    cmd += command(pin, 0.50)
 s = time.perf_counter()
 
 TOTAL_RUNS = 300
@@ -41,9 +51,10 @@ for i in range(TOTAL_RUNS):
 time.sleep(0.1)
 cmd = ""
 for pin in all_pins:
-    cmd += f"z{pin}00.50x\n"
+    cmd += command(pin, 0.50)
     print(cmd)
 
+cmd += command(ACTUATOR_NUM, 0.00)
 ser.write(cmd.encode())
 
 ser.close()
