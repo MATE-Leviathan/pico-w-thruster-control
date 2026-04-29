@@ -17,8 +17,6 @@ matching motor object.
 | `picozero.py` | Vendored `picozero` dependency used for `Servo` and the onboard LED. |
 | `control.py` | Host-side timing/control script that writes commands to `/dev/ttyACM0`. |
 | `test_main.py` | Small local parser check for the fixed-width command format. |
-| `blink.py` | Pico onboard LED smoke test. |
-| `led_stdin.py` | Pico stdin/USB serial smoke test. |
 | `servo.py` | Single-servo movement test. |
 | `thruster.py` | Single-thruster/servo output test. |
 
