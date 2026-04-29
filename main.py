@@ -6,7 +6,7 @@ from picozero import Servo, pico_led
 
 MOTOR_LOOKUP = {}
 SERVO_PINS = [26, 7, 16, 3, 15, 11]
-EXTRA_SERVO_PINS = []
+EXTRA_SERVO_PINS = [20]
 
 ACTUATOR_IDX = 99
 ACTUATOR_PWM_PIN = 28
@@ -19,9 +19,9 @@ MOTOR_LOOKUP[ACTUATOR_IDX] = DirectionMotor(
     ACTUATOR_PWM_FREQ,
 )
 
-for i in SERVO_PINS:
-    MOTOR_LOOKUP[i] = Servo(i, min_pulse_width=0.0011, max_pulse_width=0.0019)
-    # MOTOR_LOOKUP[i] = Servo(i)
+for pin in SERVO_PINS:
+    MOTOR_LOOKUP[pin] = Servo(pin, min_pulse_width=0.0011, max_pulse_width=0.0019)
+    # MOTOR_LOOKUP[pin] = Servo(pin)
 
 for i in EXTRA_SERVO_PINS:
     MOTOR_LOOKUP[i] = Servo(i, min_pulse_width=0.0007, max_pulse_width=0.0022)
@@ -40,9 +40,9 @@ async def read_stdin():
             if not line:  # EOF
                 break
 
-            # 4 characters max for the value
+            # 5 characters for the value
             # spaces just for clarity, send without
-            # format z 01 0.55 02 1.00x
+            # format z 01 00.55 02 01.00x
             # Remove trailing newline
             line = line.decode().rstrip()
             if len(line) < 2 or line[0] != "z" or line[-1] != "x":
@@ -54,10 +54,10 @@ async def read_stdin():
 
                 motor_idx = int(motor_idx_str)
                 # motor_idx = 0
-                speed_str = line[offset + 2 : offset + 6]
+                speed_str = line[offset + 2 : offset + 7]
                 speed = float(speed_str)
                 # speed = 0.5
-                offset += 6
+                offset += 7
                 # print(f"Got motor idx {motor_idx_str} at {speed_str}")
                 if motor_idx in MOTOR_LOOKUP:
                     MOTOR_LOOKUP[motor_idx].value = speed

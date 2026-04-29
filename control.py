@@ -4,14 +4,17 @@ import serial
 
 ser = serial.Serial("/dev/ttyACM0", 115200, timeout=1)
 
+THRUSTER_PINS = (26, 7, 16, 3, 15, 11)
+NEUTRAL_VALUE = 0.50
+TOTAL_RUNS = 300
+
 
 def command(pin, value):
-    if value < 0:
-        value_str = f"{value:.1f}"
-    else:
-        value_str = f"{value:.2f}"
-    # MAKE VERY SURE TO HAVE PADDING, OTHERWISE COOKED
-    return f"z{int(pin):02d}{value_str}x\n"
+    return f"z{int(pin):02d}{value:05.2f}x\n"
+
+
+def commands(pins, value):
+    return "".join(command(pin, value) for pin in pins)
 
 
 time.sleep(3)
@@ -24,38 +27,14 @@ time.sleep(3)
 # 6 -> fl-6
 # 7 -> mr-2
 # accounted for 1, 2, 3,
-all_pins = [26, 7, 16, 3, 15, 11]
-ACTUATOR_NUM = 99
-PIN_NUM = 1
-cmd = ""
-for pin in all_pins:
-    cmd += command(pin, 0.50)
-    print(cmd)
-
+# MAKE VERY SURE TO HAVE PADDING, OTHERWISE COOKED
+cmd = commands(THRUSTER_PINS, NEUTRAL_VALUE)
+print(cmd)
 ser.write(cmd.encode())
+
 time.sleep(1.5)
 
-cmd = ""
-for pin in all_pins:
-    # cmd += command(pin, 0.75)
-    cmd += command(pin, 0.50)
-s = time.perf_counter()
-
-TOTAL_RUNS = 300
-for i in range(TOTAL_RUNS):
-    s = time.perf_counter()
-    ser.reset_output_buffer()
-    ser.write(cmd.encode().ljust(64, b" "))
-    ser.flush()
-    e = time.perf_counter()
-    print(f"Time of run {(e - s)}")
-time.sleep(0.1)
-cmd = ""
-for pin in all_pins:
-    cmd += command(pin, 0.50)
-    print(cmd)
-
-cmd += command(ACTUATOR_NUM, 0.00)
+cmd = commands(THRUSTER_PINS, NEUTRAL_VALUE)
 ser.write(cmd.encode())
 
 ser.close()

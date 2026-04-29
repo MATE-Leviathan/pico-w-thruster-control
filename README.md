@@ -24,15 +24,15 @@ matching motor object.
 
 `main.py` defines six servo-style PWM outputs and one separate actuator output.
 
-| Logical id | GPIO | Driver | Value range |
+| Command id | GPIO | Driver | Value range |
 | --- | --- | --- | --- |
-| `26` | GP26 | `picozero.Servo` | `0.00` to `1.00` |
-| `07` | GP7 | `picozero.Servo` | `0.00` to `1.00` |
-| `16` | GP16 | `picozero.Servo` | `0.00` to `1.00` |
-| `03` | GP3 | `picozero.Servo` | `0.00` to `1.00` |
-| `15` | GP15 | `picozero.Servo` | `0.00` to `1.00` |
-| `11` | GP11 | `picozero.Servo` | `0.00` to `1.00` |
-| `99` | GP28 PWM, GP21 direction | `DirectionMotor` | `-1.0` to `1.0` |
+| `26` | GP26 | `picozero.Servo` | `00.00` to `01.00` |
+| `07` | GP7 | `picozero.Servo` | `00.00` to `01.00` |
+| `16` | GP16 | `picozero.Servo` | `00.00` to `01.00` |
+| `03` | GP3 | `picozero.Servo` | `00.00` to `01.00` |
+| `15` | GP15 | `picozero.Servo` | `00.00` to `01.00` |
+| `11` | GP11 | `picozero.Servo` | `00.00` to `01.00` |
+| `99` | GP28 PWM, GP21 direction | `DirectionMotor` | `-1.00` to `01.00` |
 
 The servo outputs use this pulse range:
 
@@ -40,15 +40,15 @@ The servo outputs use this pulse range:
 Servo(pin, min_pulse_width=0.0011, max_pulse_width=0.0019)
 ```
 
-For those outputs, `0.50` is the neutral/midpoint value used by `control.py`.
-For the actuator, `0.00` turns PWM off.
+For those outputs, `00.50` is the neutral/midpoint value used by `control.py`.
+For the actuator, `00.00` turns PWM off.
 
 ## Command Protocol
 
 The firmware expects newline-terminated ASCII frames:
 
 ```text
-zPPVVVVPPVVVVx
+zPPVVVVVPPVVVVVx
 ```
 
 Each frame:
@@ -57,35 +57,35 @@ Each frame:
 - contains one or more fixed-width output updates
 - ends with `x`
 
-Each output update is exactly six characters:
+Each output update is exactly seven characters:
 
 | Field | Width | Meaning | Example |
 | --- | --- | --- | --- |
-| `PP` | 2 chars | Logical output id, zero-padded | `07`, `26`, `99` |
-| `VVVV` | 4 chars | Value parsed as a float | `0.50`, `1.00`, `-0.5` |
+| `PP` | 2 chars | GPIO pin id or actuator id, zero-padded | `07`, `26`, `99` |
+| `VVVVV` | 5 chars | Value parsed as a float | `00.50`, `01.00`, `-0.50` |
 
 Examples:
 
 ```text
-z260.50x
-z260.50070.50160.50x
-z99-0.5x
+z2600.50x
+z2600.500700.501600.50x
+z99-0.50x
 ```
 
-The fixed widths matter. `z260.50x` is valid; `z260.5x` is not, because the
-value is only three characters. Positive values should normally be formatted
-with two decimal places. Negative values in this protocol are usually one
-decimal place so they still fit in four characters, for example `-0.5`.
+The fixed widths matter. `z0300.50x` is valid; `z030.50x` is not for this
+protocol, because the value is only four characters. Positive values should
+normally be formatted with two digits before the decimal point and two decimal
+places. Negative values should still be five characters, for example `-0.50`.
 
 Pin ids must also be padded to two characters. For example, GPIO 3 is addressed
 as `03`, so its neutral command is:
 
 ```text
-z030.50x
+z0300.50x
 ```
 
 If a frame does not start with `z` and end with `x`, `main.py` ignores it. If a
-logical id is not present in `MOTOR_LOOKUP`, that specific update is ignored.
+GPIO pin id is not present in `MOTOR_LOOKUP`, that specific update is ignored.
 The onboard LED toggles after each parsed update, which is useful as a quick
 traffic indicator.
 
@@ -94,8 +94,8 @@ traffic indicator.
 `main.py` does four things:
 
 1. Creates `MOTOR_LOOKUP`.
-2. Adds the actuator as logical id `99`.
-3. Adds each configured servo pin as both the logical id and GPIO pin.
+2. Adds the actuator as id `99`.
+3. Adds each configured servo pin using the GPIO pin as the command id.
 4. Starts an async stdin loop that parses command frames forever.
 
 The important constants are:
@@ -138,71 +138,75 @@ absolute value.
 `control.py` opens `/dev/ttyACM0` at `115200` baud and sends command frames to
 the Pico.
 
-The `command()` helper formats one complete frame:
+The helpers format one complete frame per GPIO pin:
 
 ```python
 def command(pin, value):
-    if value < 0:
-        value_str = f"{value:.1f}"
-    else:
-        value_str = f"{value:.2f}"
-    return f"z{int(pin):02d}{value_str}x\n"
+    return f"z{int(pin):02d}{value:05.2f}x\n"
+
+
+def commands(pins, value):
+    return "".join(command(pin, value) for pin in pins)
 ```
 
 The script currently:
 
-1. Sends `0.50` to every servo output.
+1. Sends `00.50` to every servo output.
 2. Builds another all-neutral command payload.
 3. Writes that payload repeatedly for timing measurements.
-4. Sends final neutral servo values and actuator `99` value `0.00`.
+4. Sends final neutral servo values.
 
-The repeated write is padded to 64 bytes:
+The repeated write sends the encoded command bytes directly:
 
 ```python
-ser.write(cmd.encode().ljust(64, b' '))
+ser.write(cmd.encode())
 ```
 
-That padding is specific to the current test loop. Keep the fixed-width command
-format intact if changing this script.
+Keep the fixed-width command format intact if changing this script.
 
 ## Quick Command Reference
 
-Neutralize all six servo outputs in one frame:
+Neutralize all six servo outputs:
 
 ```text
-z260.50070.50160.50030.50150.50110.50x
+z2600.50x
+z0700.50x
+z1600.50x
+z0300.50x
+z1500.50x
+z1100.50x
 ```
 
 Turn actuator `99` off:
 
 ```text
-z990.00x
+z9900.00x
 ```
 
 Set actuator `99` to reverse half power:
 
 ```text
-z99-0.5x
+z99-0.50x
 ```
 
 Set GP26 to its midpoint:
 
 ```text
-z260.50x
+z2600.50x
 ```
 
-Set GP3 to its midpoint. The pin id is padded as `03`:
+Set GP3 to its midpoint. The GPIO pin id is padded as `03`:
 
 ```text
-z030.50x
+z0300.50x
 ```
 
 ## Editing Notes
 
-- Keep logical ids two digits wide. The parser slices exactly two characters for
-  the id, so pin `3` must be sent as `03`.
-- Keep values four characters wide. The parser slices exactly four characters
-  for the value.
-- Servo ids currently match GPIO pin numbers.
-- Actuator id `99` is only a logical id; its real pins are GP28 and GP21.
+- Keep GPIO pin ids two digits wide. The parser slices exactly two characters
+  for the id, so pin `3` must be sent as `03`.
+- Keep values five characters wide. The parser slices exactly five characters
+  for the value, so neutral is `00.50`.
+- Servo ids are GPIO pin numbers.
+- Actuator id `99` is not a GPIO pin number; its real pins are GP28 and GP21.
 - Start hardware tests from neutral values before sending larger changes.
