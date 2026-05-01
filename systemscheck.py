@@ -23,10 +23,27 @@ servo_end_values = {
 }
 
 VIDEO_ROOT = Path("systemscheck_videos")
+THRUSTER_PINS = ("26", "07", "16", "03", "15", "11")
+DESCENT_THRUSTER_PINS = ("07", "11")
+NEUTRAL_THRUSTER_VALUE = 0.50
+DESCENT_TEST_DOWN_VALUE = 0.44
+DESCENT_TEST_UP_VALUE = 0.56
+DESCENT_TEST_STEP = 0.01
+DESCENT_TEST_STEP_DELAY_SECONDS = 0.25
+DESCENT_TEST_HOLD_SECONDS = 1.0
+DESCENT_TEST_CYCLES = 2
 
 
 def servo_command(pin, value):
     return f"z{pin}{value:04.2f}x\n"
+
+
+def thruster_command(pin, value):
+    return f"z{pin}{value:05.2f}x\n"
+
+
+def thruster_commands(pins, value):
+    return "".join(thruster_command(pin, value) for pin in pins)
 
 
 def video_device_sort_key(device_path):
@@ -211,7 +228,81 @@ def parse_args():
         help="Record camera check clips. Existing systemscheck videos are deleted first.",
     )
     parser.add_argument("--camera-duration", type=float, default=5.0)
+    parser.add_argument(
+        "--test-descent",
+        action="store_true",
+        help="Slowly pulse the vertical thrusters up and down around neutral.",
+    )
     return parser.parse_args()
+
+
+def write_thrusters(ser, pins, value):
+    cmd = thruster_commands(pins, value)
+    print(cmd, end="")
+    ser.write(cmd.encode())
+
+
+def ramp_thrusters(ser, pins, start_value, end_value):
+    direction = 1 if end_value > start_value else -1
+    value = start_value
+
+    while value != end_value:
+        value += direction * DESCENT_TEST_STEP
+        if direction > 0:
+            value = min(value, end_value)
+        else:
+            value = max(value, end_value)
+
+        write_thrusters(ser, pins, value)
+        time.sleep(DESCENT_TEST_STEP_DELAY_SECONDS)
+
+
+def run_descent_test(port, baud):
+    ser = serial.Serial(port, baud, timeout=1)
+
+    try:
+        time.sleep(3)
+        print("Neutralizing all thrusters")
+        write_thrusters(ser, THRUSTER_PINS, NEUTRAL_THRUSTER_VALUE)
+        time.sleep(1.5)
+
+        for cycle in range(1, DESCENT_TEST_CYCLES + 1):
+            print(f"Descent test cycle {cycle}: slow down")
+            ramp_thrusters(
+                ser,
+                DESCENT_THRUSTER_PINS,
+                NEUTRAL_THRUSTER_VALUE,
+                DESCENT_TEST_DOWN_VALUE,
+            )
+            time.sleep(DESCENT_TEST_HOLD_SECONDS)
+            ramp_thrusters(
+                ser,
+                DESCENT_THRUSTER_PINS,
+                DESCENT_TEST_DOWN_VALUE,
+                NEUTRAL_THRUSTER_VALUE,
+            )
+            time.sleep(DESCENT_TEST_HOLD_SECONDS)
+
+            print(f"Descent test cycle {cycle}: slow up")
+            ramp_thrusters(
+                ser,
+                DESCENT_THRUSTER_PINS,
+                NEUTRAL_THRUSTER_VALUE,
+                DESCENT_TEST_UP_VALUE,
+            )
+            time.sleep(DESCENT_TEST_HOLD_SECONDS)
+            ramp_thrusters(
+                ser,
+                DESCENT_THRUSTER_PINS,
+                DESCENT_TEST_UP_VALUE,
+                NEUTRAL_THRUSTER_VALUE,
+            )
+            time.sleep(DESCENT_TEST_HOLD_SECONDS)
+    finally:
+        try:
+            write_thrusters(ser, THRUSTER_PINS, NEUTRAL_THRUSTER_VALUE)
+        finally:
+            ser.close()
 
 
 def run_system_check(port, baud):
@@ -229,7 +320,7 @@ def run_system_check(port, baud):
         # 7 -> mr-2
         # accounted for 1, 2, 3,
         # MAKE VERY SURE TO HAVE PADDING, OTHERWISE COOKED
-        all_pins = ["26", "07", "16", "03", "15", "11"]
+        all_pins = THRUSTER_PINS
         cmd = ""
         for pin in all_pins:
             cmd += f"z{pin}00.50x\n"
@@ -294,7 +385,10 @@ def main():
     if args.record_cameras:
         record_camera_check_videos(args.camera_duration)
 
-    run_system_check(args.port, args.baud)
+    if args.test_descent:
+        run_descent_test(args.port, args.baud)
+    else:
+        run_system_check(args.port, args.baud)
 
 
 if __name__ == "__main__":
