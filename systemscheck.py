@@ -32,6 +32,7 @@ DESCENT_TEST_STEP = 0.01
 DESCENT_TEST_STEP_DELAY_SECONDS = 0.25
 DESCENT_TEST_HOLD_SECONDS = 1.0
 DESCENT_TEST_CYCLES = 2
+THRUSTER_ARM_DELAY_SECONDS = 0.5
 
 
 def servo_command(pin, value):
@@ -242,6 +243,14 @@ def write_thrusters(ser, pins, value):
     ser.write(cmd.encode())
 
 
+def arm_thrusters_one_at_a_time(ser, pins):
+    for pin in pins:
+        cmd = thruster_command(pin, NEUTRAL_THRUSTER_VALUE)
+        print(cmd, end="")
+        ser.write(cmd.encode())
+        time.sleep(THRUSTER_ARM_DELAY_SECONDS)
+
+
 def ramp_thrusters(ser, pins, start_value, end_value):
     direction = 1 if end_value > start_value else -1
     value = start_value
@@ -321,12 +330,7 @@ def run_system_check(port, baud):
         # accounted for 1, 2, 3,
         # MAKE VERY SURE TO HAVE PADDING, OTHERWISE COOKED
         all_pins = THRUSTER_PINS
-        cmd = ""
-        for pin in all_pins:
-            cmd += f"z{pin}00.50x\n"
-            print(cmd)
-
-        ser.write(cmd.encode())
+        arm_thrusters_one_at_a_time(ser, all_pins)
         time.sleep(1.5)
 
         cmd = ""
