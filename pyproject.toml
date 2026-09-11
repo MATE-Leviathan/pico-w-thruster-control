@@ -1,0 +1,14 @@
+[project]
+name = "pico-w-thruster-control"
+version = "0.1.0"
+description = "Pico W thruster, servo, and actuator control with a Jetson diagnostic menu"
+requires-python = ">=3.10"
+dependencies = [
+    "pyserial>=3.5",
+    "questionary>=2.0",
+    "mpremote>=1.22",
+]
+
+[project.scripts]
+diagnostics = "diagnostics.menu:main"
+upload = "scripts.upload:main"

@@ -1,0 +1,23 @@
+{
+  "thruster_neutral": 0.5,
+  "thruster_pulse_ms": { "min": 1.1, "max": 1.9 },
+  "servo_pulse_ms": { "min": 0.7, "max": 2.2 },
+  "_comment": "Thruster position describes physical mounting location (e.g. front-left). null means unassigned; it does not affect motor control.",
+  "thrusters": {
+    "thruster_1": { "pin": 26, "position": null },
+    "thruster_2": { "pin": 7, "position": null },
+    "thruster_3": { "pin": 16, "position": null },
+    "thruster_4": { "pin": 3, "position": null },
+    "thruster_5": { "pin": 15, "position": null },
+    "thruster_6": { "pin": 11, "position": null }
+  },
+  "aux_servos": {
+    "servo_1": { "pin": 20, "min": 0.42, "max": 0.54, "end": 0.48 },
+    "servo_2": { "pin": 1, "min": 0.45, "max": 1.0, "end": 0.54 }
+  },
+  "actuator": {
+    "direction_pin": 21,
+    "speed_pin": 28,
+    "pwm_freq": 20000
+  }
+}
