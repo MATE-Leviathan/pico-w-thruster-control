@@ -56,7 +56,10 @@ def test_servos(link, selected):
 
 
 def test_actuator(link, config):
-    direction_pin, speed_pin, _freq = actuator(config)
+    settings = actuator(config)
+    if settings is None:
+        raise ValueError("No actuator configured")
+    direction_pin, speed_pin, _freq = settings
     print("Actuator test: forward, stop, back, stop")
 
     link.send([(speed_pin, 0.0)])
@@ -74,6 +77,8 @@ def test_actuator(link, config):
 
 def neutralize(link, config):
     updates = [(pin, float(config["thruster_neutral"])) for _name, pin, _pos in thrusters(config)]
-    _direction_pin, speed_pin, _freq = actuator(config)
-    updates.append((speed_pin, 0.0))
+    settings = actuator(config)
+    if settings is not None:
+        _direction_pin, speed_pin, _freq = settings
+        updates.append((speed_pin, 0.0))
     link.send(updates)

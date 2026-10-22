@@ -1,22 +1,23 @@
 # Pico W Thruster Control
 
 Control ROV thrusters, servos, and an actuator from a Jetson over USB.
-The Pico W needs MicroPython installed.
+Requires MicroPython on the Pico W and `uv` on the Jetson.
 
-Run from the repository root:
+Edit pins and limits in [config/rov.json](config/rov.json), then run from this folder:
 
 ```bash
-uv sync
 uv run upload --port /dev/ttyACM0
 uv run diagnostics --port /dev/ttyACM0
 ```
 
+Change the port if needed. Close diagnostics before uploading.
 To try the menu without hardware: `uv run diagnostics --dry-run`.
 
-Edit pins and limits in `config/rov.json`, then upload again.
-Change `/dev/ttyACM0` if your Pico uses another port. Close the menu before uploading.
+The current setup uses one thruster on GPIO12. Leave out `aux_servos` and
+`actuator` when unused, or set them to `null` or `{}`. Configuration errors,
+including conflicting PWM pins, are checked before upload and at startup.
 
-Movement presets are in `diagnostics/sequences.py`; verify them on the bench.
-Disconnecting USB does not guarantee the motors stop.
+Movement presets are in [diagnostics/sequences.py](diagnostics/sequences.py).
+Verify them on the bench. Disconnecting USB does not guarantee the motors stop.
 
 For camera recording, see [cameras/README.md](cameras/README.md).

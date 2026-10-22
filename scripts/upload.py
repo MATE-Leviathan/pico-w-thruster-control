@@ -11,6 +11,7 @@ from diagnostics import config as rov_config
 DEFAULT_PORT = "/dev/ttyACM0"
 
 MAPPING = (
+    (rov_config.FIRMWARE_DIR / "config_validation.py", "config_validation.py"),
     (rov_config.FIRMWARE_DIR / "main.py", "main.py"),
     (rov_config.FIRMWARE_DIR / "protocol.py", "protocol.py"),
     (rov_config.FIRMWARE_DIR / "picozero.py", "picozero.py"),
@@ -56,8 +57,12 @@ def upload(port):
 def main(argv=None):
     args = parse_args(argv)
 
-    config = rov_config.load_config()
-    rov_config.validate(config)
+    try:
+        config = rov_config.load_config()
+        rov_config.validate(config)
+    except ValueError as error:
+        print(f"Invalid configuration: {error}", file=sys.stderr)
+        return 1
     return upload(args.port)
 
 

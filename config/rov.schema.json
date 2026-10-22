@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["thruster_neutral", "thruster_pulse_ms", "servo_pulse_ms", "thrusters"],
+  "additionalProperties": false,
+  "properties": {
+    "thruster_neutral": { "$ref": "#/$defs/value" },
+    "thruster_pulse_ms": { "$ref": "#/$defs/pulse" },
+    "servo_pulse_ms": { "$ref": "#/$defs/pulse" },
+    "thrusters": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["pin"],
+        "additionalProperties": false,
+        "properties": {
+          "pin": { "$ref": "#/$defs/pin" },
+          "position": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "aux_servos": {
+      "type": ["object", "null"],
+      "additionalProperties": {
+        "type": "object",
+        "required": ["pin", "min", "max", "end"],
+        "additionalProperties": false,
+        "properties": {
+          "pin": { "$ref": "#/$defs/pin" },
+          "min": { "$ref": "#/$defs/value" },
+          "max": { "$ref": "#/$defs/value" },
+          "end": { "$ref": "#/$defs/value" }
+        }
+      }
+    },
+    "actuator": {
+      "type": ["object", "null"],
+      "required": ["direction_pin", "speed_pin", "pwm_freq"],
+      "additionalProperties": false,
+      "properties": {
+        "direction_pin": { "$ref": "#/$defs/pin" },
+        "speed_pin": { "$ref": "#/$defs/pin" },
+        "pwm_freq": { "type": "integer", "minimum": 1 }
+      }
+    }
+  },
+  "$defs": {
+    "pin": { "type": "integer", "minimum": 0, "maximum": 29 },
+    "value": { "type": "number", "minimum": 0, "maximum": 1 },
+    "pulse": {
+      "type": "object",
+      "required": ["min", "max"],
+      "additionalProperties": false,
+      "properties": {
+        "min": { "type": "number", "exclusiveMinimum": 0 },
+        "max": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    }
+  }
+}

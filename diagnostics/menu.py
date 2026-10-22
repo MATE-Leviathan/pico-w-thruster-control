@@ -20,6 +20,16 @@ MAIN_MENU = [
 ]
 
 
+def menu_choices(config):
+    choices = list(MAIN_MENU)
+    if not rov_config.aux_servos(config):
+        choices.remove("Servo test")
+    if rov_config.actuator(config) is None:
+        choices.remove("Actuator test")
+        choices[choices.index("Neutralize thrusters / stop actuator")] = "Neutralize thrusters"
+    return choices
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Pico W output diagnostic menu.")
     parser.add_argument("--port", default=DEFAULT_PORT)
@@ -90,7 +100,7 @@ def _run(link, config, action):
 
 def menu_loop(link, config):
     while True:
-        choice = questionary.select("Diagnostic menu:", choices=MAIN_MENU).ask()
+        choice = questionary.select("Diagnostic menu:", choices=menu_choices(config)).ask()
 
         if choice is None or choice == "Exit":
             return
@@ -114,14 +124,18 @@ def menu_loop(link, config):
             if confirm("Run the actuator forward/back test?"):
                 _run(link, config, lambda: sequences.test_actuator(link, config))
 
-        elif choice == "Neutralize thrusters / stop actuator":
+        elif choice in ("Neutralize thrusters", "Neutralize thrusters / stop actuator"):
             _run(link, config, lambda: sequences.neutralize(link, config))
 
 
 def main(argv=None):
     args = parse_args(argv)
-    config = rov_config.load_config()
-    rov_config.validate(config)
+    try:
+        config = rov_config.load_config()
+        rov_config.validate(config)
+    except ValueError as error:
+        print(f"Invalid configuration: {error}", file=sys.stderr)
+        return 1
     if args.dry_run:
         print("Dry run: commands are printed only; no hardware is connected.")
 
